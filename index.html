@@ -199,6 +199,35 @@
       gap: 8px;
     }
 
+    .music-button {
+      position: fixed;
+      top: clamp(16px, 3vw, 28px);
+      right: clamp(14px, 4vw, 34px);
+      z-index: 5;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 118px;
+      height: 42px;
+      padding: 0 16px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--ink);
+      background: var(--glass);
+      box-shadow: 0 18px 55px rgba(0, 0, 0, 0.26);
+      backdrop-filter: blur(16px);
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 800;
+      transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+    }
+
+    .music-button:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.13);
+    }
+
     .media-source {
       display: none;
     }
@@ -287,6 +316,22 @@
         bottom: 72px;
       }
 
+      .music-button {
+        top: auto;
+        right: auto;
+        left: 50%;
+        bottom: 58px;
+        transform: translateX(-50%);
+        min-width: 104px;
+        height: 34px;
+        padding: 0 12px;
+        font-size: 0.72rem;
+      }
+
+      .music-button:hover {
+        transform: translateX(-50%) translateY(-2px);
+      }
+
       .fallback-gallery {
         grid-template-columns: repeat(5, 74vw);
         overflow-x: auto;
@@ -313,6 +358,7 @@
   </aside>
 
   <button class="play-button" id="playVideo" type="button">Play video</button>
+  <button class="music-button" id="musicToggle" type="button">Play music</button>
 
   <nav class="controls" aria-label="Memory controls">
     <button class="icon-button" id="previous" type="button" title="Previous memory">&lt;</button>
@@ -330,6 +376,14 @@
     loop
     preload="metadata"
   ></video>
+
+  <audio
+    id="backgroundMusic"
+    class="media-source"
+    src="Just%20Be%20Good.mp3"
+    loop
+    preload="auto"
+  ></audio>
 
   <script type="module">
     const memories = [
@@ -373,6 +427,37 @@
         accent: 0xff6f91
       }
     ];
+
+    const music = document.getElementById("backgroundMusic");
+    const musicToggle = document.getElementById("musicToggle");
+    let musicWasStopped = false;
+
+    async function startMusic() {
+      if (!music || !music.paused) return;
+      try {
+        music.volume = 0.42;
+        await music.play();
+        musicToggle.textContent = "Pause music";
+      } catch {
+        musicToggle.textContent = "Play music";
+      }
+    }
+
+    function stopMusic() {
+      if (!music) return;
+      music.pause();
+      musicToggle.textContent = "Play music";
+    }
+
+    musicToggle.addEventListener("click", () => {
+      if (music.paused) {
+        musicWasStopped = false;
+        startMusic();
+      } else {
+        musicWasStopped = true;
+        stopMusic();
+      }
+    });
 
     let THREE;
 
@@ -560,6 +645,7 @@
         try {
           video.muted = false;
           await video.play();
+          if (!music.paused) music.volume = 0.18;
           playButton.textContent = "Pause video";
         } catch {
           video.muted = true;
@@ -568,11 +654,13 @@
         }
       } else {
         video.pause();
+        if (!music.paused) music.volume = 0.42;
         playButton.textContent = "Play video";
       }
     });
 
     window.addEventListener("keydown", (event) => {
+      if (!musicWasStopped) startMusic();
       if (event.key === "ArrowRight") next();
       if (event.key === "ArrowLeft") previous();
       if (event.key === " " && memories[active].type === "video") {
@@ -582,6 +670,7 @@
     });
 
     window.addEventListener("pointerdown", (event) => {
+      if (!musicWasStopped) startMusic();
       pointerStart = { x: event.clientX, y: event.clientY };
     });
 
